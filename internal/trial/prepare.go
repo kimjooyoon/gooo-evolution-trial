@@ -61,10 +61,6 @@ func PrepareDeltaInput(phasePath, compilerCommit, baselineReceiptPath, outputDir
 		IndependentConsumer: DeltaIndependentReceipt{Schema: deltaIndependentSchema, ReceiptID: "independent-normalize-source", ProducerID: "reflexive-observer", ConsumerID: "evolution-trial-independent-consumer", State: "CLOSED"},
 	}
 	failure := DeltaFailure{Schema: deltaReceiptSchema, ID: "failure-reflexive-normalize-source", State: "FAILURE", SourceDigest: sourceDigest, GraphDigest: graph.GraphDigest, Target: &target, DirectCause: &direct}
-	failure.Digest, err = digestDeltaReceipt(failure)
-	if err != nil {
-		return err
-	}
 	input := DeltaInput{Schema: deltaInputSchema, Release: DeltaRelease{Schema: deltaReleaseSchema, Version: "v1", Identity: identity, Graph: graph}, Failure: failure, Receipts: []DeltaReceipt{}}
 	if err := WriteJSON(outputDir+"/input.json", input); err != nil {
 		return err
