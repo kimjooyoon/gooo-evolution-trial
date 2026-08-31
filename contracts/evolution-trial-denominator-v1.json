@@ -1,0 +1,29 @@
+{
+  "schema": "gooo/evolution-trial/denominator/v1",
+  "denominator_id": "evolution-trial-v1",
+  "fixed_denominator": 18,
+  "precedence": ["REFUTED", "UNKNOWN", "CLOSED"],
+  "unknown_fields": ["stage", "step", "reason", "unknown_class", "next_operation", "blocked_by"],
+  "proof_totals": {"FOUNDATION": 6, "COHERENCE": 6, "REGRESSION": 6},
+  "indicator_totals": {"DRIVER": 6, "OUTCOME": 6, "GUARDRAIL": 6},
+  "cells": [
+    {"ordinal":1,"id":"FOUNDATION-DRIVER-01","activity":"ObserveFailure","stage":"OBSERVE","step":"bind-failure-observation","proof_choice":"FOUNDATION","indicator_class":"DRIVER"},
+    {"ordinal":2,"id":"FOUNDATION-DRIVER-02","activity":"BindReleasedCompiler","stage":"OBSERVE","step":"bind-immutable-compiler-release","proof_choice":"FOUNDATION","indicator_class":"DRIVER"},
+    {"ordinal":3,"id":"FOUNDATION-OUTCOME-01","activity":"ObserveNormalization","stage":"OBSERVE","step":"record-real-normalization-evidence","proof_choice":"FOUNDATION","indicator_class":"OUTCOME"},
+    {"ordinal":4,"id":"FOUNDATION-OUTCOME-02","activity":"ResolveFailureTarget","stage":"OBSERVE","step":"bind-direct-cause-target","proof_choice":"FOUNDATION","indicator_class":"OUTCOME"},
+    {"ordinal":5,"id":"FOUNDATION-GUARDRAIL-01","activity":"PreserveReadOnlyBoundary","stage":"AUTHORITY","step":"caller-owned-temporary-space","proof_choice":"FOUNDATION","indicator_class":"GUARDRAIL"},
+    {"ordinal":6,"id":"FOUNDATION-GUARDRAIL-02","activity":"PreservePrecedence","stage":"AUTHORITY","step":"preserve-refuted-unknown-closed","proof_choice":"FOUNDATION","indicator_class":"GUARDRAIL"},
+    {"ordinal":7,"id":"COHERENCE-DRIVER-01","activity":"AskDeltaForge","stage":"FORGE","step":"request-exact-split-candidate","proof_choice":"COHERENCE","indicator_class":"DRIVER"},
+    {"ordinal":8,"id":"COHERENCE-DRIVER-02","activity":"BindCandidateSplit","stage":"FORGE","step":"bind-one-to-two-cell-split","proof_choice":"COHERENCE","indicator_class":"DRIVER"},
+    {"ordinal":9,"id":"COHERENCE-OUTCOME-01","activity":"GenerateCandidatePhase","stage":"APPLY","step":"generate-gooo-through-metacode","proof_choice":"COHERENCE","indicator_class":"OUTCOME"},
+    {"ordinal":10,"id":"COHERENCE-OUTCOME-02","activity":"ApplyTemporaryCompilerPhase","stage":"APPLY","step":"probe-released-compiler-interface","proof_choice":"COHERENCE","indicator_class":"OUTCOME"},
+    {"ordinal":11,"id":"COHERENCE-GUARDRAIL-01","activity":"GenerateRollback","stage":"APPLY","step":"bind-exact-inverse-delta","proof_choice":"COHERENCE","indicator_class":"GUARDRAIL"},
+    {"ordinal":12,"id":"COHERENCE-GUARDRAIL-02","activity":"VerifyCandidateBoundary","stage":"APPLY","step":"retain-baseline-and-separate-candidate","proof_choice":"COHERENCE","indicator_class":"GUARDRAIL"},
+    {"ordinal":13,"id":"REGRESSION-DRIVER-01","activity":"RunBaselineCorpus","stage":"CORPUS","step":"run-released-closed-unknown-refuted-corpus","proof_choice":"REGRESSION","indicator_class":"DRIVER"},
+    {"ordinal":14,"id":"REGRESSION-DRIVER-02","activity":"RunCandidateCorpus","stage":"CORPUS","step":"run-matched-corpus","proof_choice":"REGRESSION","indicator_class":"DRIVER"},
+    {"ordinal":15,"id":"REGRESSION-OUTCOME-01","activity":"SelectCausalTests","stage":"VERIFY","step":"use-released-causal-selection","proof_choice":"REGRESSION","indicator_class":"OUTCOME"},
+    {"ordinal":16,"id":"REGRESSION-OUTCOME-02","activity":"RunFullOracle","stage":"VERIFY","step":"run-independent-full-oracle","proof_choice":"REGRESSION","indicator_class":"OUTCOME"},
+    {"ordinal":17,"id":"REGRESSION-GUARDRAIL-01","activity":"CompareOracle","stage":"VERIFY","step":"compare-selective-full-and-replay-digests","proof_choice":"REGRESSION","indicator_class":"GUARDRAIL"},
+    {"ordinal":18,"id":"REGRESSION-GUARDRAIL-02","activity":"AdoptOrRollback","stage":"DECIDE","step":"accept-only-on-all-predicates","proof_choice":"REGRESSION","indicator_class":"GUARDRAIL"}
+  ]
+}

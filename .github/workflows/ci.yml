@@ -1,0 +1,32 @@
+name: gooo-evolution-trial
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  bootstrap-authority:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.x'
+          cache: true
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
+      - name: Vet and build bootstrap executor
+        run: |
+          go vet ./...
+          go build -o "$RUNNER_TEMP/gooo-evolution-trial" ./cmd/gooo-evolution-trial
+      - name: Verify .gooo authority and bootstrap evidence
+        run: |
+          "$RUNNER_TEMP/gooo-evolution-trial" authority-verify
+          jq -e '.schema == "gooo/evolution-trial/process-evidence/v1" and .bootstrap_direct_main == 1 and .post_bootstrap_direct_main == 0 and .local_test_executions == 0 and .exact == false' process/bootstrap-evidence.json >/dev/null

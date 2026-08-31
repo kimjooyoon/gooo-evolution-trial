@@ -1,0 +1,76 @@
+package evolution_trial
+namespace evolution_trial
+
+entity FailureObservation id "gooo://evolution-trial/entity/failure-observation"
+entity ReleasedCompiler id "gooo://evolution-trial/entity/released-compiler"
+entity NormalizationEvidence id "gooo://evolution-trial/entity/normalization-evidence"
+entity DeltaCandidate id "gooo://evolution-trial/entity/delta-candidate"
+entity CandidatePhase id "gooo://evolution-trial/entity/candidate-phase"
+entity BaselineCorpus id "gooo://evolution-trial/entity/baseline-corpus"
+entity CandidateCorpus id "gooo://evolution-trial/entity/candidate-corpus"
+entity CausalSelection id "gooo://evolution-trial/entity/causal-selection"
+entity FullOracle id "gooo://evolution-trial/entity/full-oracle"
+entity Comparison id "gooo://evolution-trial/entity/comparison"
+entity AdoptionDecision id "gooo://evolution-trial/entity/adoption-decision"
+entity Rollback id "gooo://evolution-trial/entity/rollback"
+
+activity ObserveFailure(FailureObservation) -> ReleasedCompiler computes "evolution-trial.observe-failure/v1;stage=OBSERVE;step=bind-failure-observation;proof=FOUNDATION;indicator=DRIVER"
+activity BindReleasedCompiler(ReleasedCompiler) -> NormalizationEvidence computes "evolution-trial.bind-compiler/v1;stage=OBSERVE;step=bind-immutable-compiler-release;proof=FOUNDATION;indicator=DRIVER"
+activity ObserveNormalization(NormalizationEvidence) -> NormalizationEvidence computes "evolution-trial.observe-normalization/v1;stage=OBSERVE;step=record-real-normalization-evidence;proof=FOUNDATION;indicator=OUTCOME"
+activity ResolveFailureTarget(FailureObservation) -> NormalizationEvidence computes "evolution-trial.resolve-target/v1;stage=OBSERVE;step=bind-direct-cause-target;proof=FOUNDATION;indicator=OUTCOME"
+activity PreserveReadOnlyBoundary(ReleasedCompiler) -> ReleasedCompiler computes "evolution-trial.read-only/v1;stage=AUTHORITY;step=caller-owned-temporary-space;proof=FOUNDATION;indicator=GUARDRAIL"
+activity PreservePrecedence(FailureObservation) -> AdoptionDecision computes "evolution-trial.precedence/v1;stage=AUTHORITY;step=preserve-refuted-unknown-closed;proof=FOUNDATION;indicator=GUARDRAIL"
+
+activity AskDeltaForge(NormalizationEvidence) -> DeltaCandidate computes "evolution-trial.ask-delta-forge/v1;stage=FORGE;step=request-exact-split-candidate;proof=COHERENCE;indicator=DRIVER"
+activity BindCandidateSplit(DeltaCandidate) -> DeltaCandidate computes "evolution-trial.bind-split/v1;stage=FORGE;step=bind-one-to-two-cell-split;proof=COHERENCE;indicator=DRIVER"
+activity GenerateCandidatePhase(DeltaCandidate) -> CandidatePhase computes "evolution-trial.generate-phase/v1;stage=APPLY;step=generate-gooo-through-metacode;proof=COHERENCE;indicator=OUTCOME"
+activity ApplyTemporaryCompilerPhase(CandidatePhase) -> CandidateCorpus computes "evolution-trial.apply-temporary/v1;stage=APPLY;step=probe-released-compiler-interface;proof=COHERENCE;indicator=OUTCOME"
+activity GenerateRollback(DeltaCandidate) -> Rollback computes "evolution-trial.rollback/v1;stage=APPLY;step=bind-exact-inverse-delta;proof=COHERENCE;indicator=GUARDRAIL"
+activity VerifyCandidateBoundary(CandidatePhase) -> Rollback computes "evolution-trial.boundary/v1;stage=APPLY;step=retain-baseline-and-separate-candidate;proof=COHERENCE;indicator=GUARDRAIL"
+
+activity RunBaselineCorpus(ReleasedCompiler) -> BaselineCorpus computes "evolution-trial.baseline/v1;stage=CORPUS;step=run-released-closed-unknown-refuted-corpus;proof=REGRESSION;indicator=DRIVER"
+activity RunCandidateCorpus(CandidatePhase) -> CandidateCorpus computes "evolution-trial.candidate/v1;stage=CORPUS;step=run-matched-corpus;proof=REGRESSION;indicator=DRIVER"
+activity SelectCausalTests(DeltaCandidate) -> CausalSelection computes "evolution-trial.causal-select/v1;stage=VERIFY;step=use-released-causal-selection;proof=REGRESSION;indicator=OUTCOME"
+activity RunFullOracle(CandidateCorpus) -> FullOracle computes "evolution-trial.full-oracle/v1;stage=VERIFY;step=run-independent-full-oracle;proof=REGRESSION;indicator=OUTCOME"
+activity CompareOracle(CausalSelection, FullOracle) -> Comparison computes "evolution-trial.compare/v1;stage=VERIFY;step=compare-selective-full-and-replay-digests;proof=REGRESSION;indicator=GUARDRAIL"
+activity AdoptOrRollback(Comparison) -> AdoptionDecision computes "evolution-trial.adopt-or-rollback/v1;stage=DECIDE;step=accept-only-on-all-predicates;proof=REGRESSION;indicator=GUARDRAIL"
+
+gooo evolution_trial v1
+denominator id=evolution-trial-v1 cell_count=18
+authority repository_writes=0 upstream_writes=0 local_test_executions=0 merge_authority=0
+precedence REFUTED>UNKNOWN>CLOSED
+unknown_fields stage,step,reason,unknown_class,next_operation,blocked_by
+metrics exact-integers-only human-metrics-link-to-activity-generated-receipt
+adoption candidate-only automatic-merge=false protected-core-mutation=false
+rollback baseline-retained candidate-separate inverse-delta-required
+
+cell ordinal=1 id=FOUNDATION-DRIVER-01 proof=FOUNDATION indicator=DRIVER stage=OBSERVE step=bind-failure-observation
+cell ordinal=2 id=FOUNDATION-DRIVER-02 proof=FOUNDATION indicator=DRIVER stage=OBSERVE step=bind-immutable-compiler-release
+cell ordinal=3 id=FOUNDATION-OUTCOME-01 proof=FOUNDATION indicator=OUTCOME stage=OBSERVE step=record-real-normalization-evidence
+cell ordinal=4 id=FOUNDATION-OUTCOME-02 proof=FOUNDATION indicator=OUTCOME stage=OBSERVE step=bind-direct-cause-target
+cell ordinal=5 id=FOUNDATION-GUARDRAIL-01 proof=FOUNDATION indicator=GUARDRAIL stage=AUTHORITY step=caller-owned-temporary-space
+cell ordinal=6 id=FOUNDATION-GUARDRAIL-02 proof=FOUNDATION indicator=GUARDRAIL stage=AUTHORITY step=preserve-refuted-unknown-closed
+cell ordinal=7 id=COHERENCE-DRIVER-01 proof=COHERENCE indicator=DRIVER stage=FORGE step=request-exact-split-candidate
+cell ordinal=8 id=COHERENCE-DRIVER-02 proof=COHERENCE indicator=DRIVER stage=FORGE step=bind-one-to-two-cell-split
+cell ordinal=9 id=COHERENCE-OUTCOME-01 proof=COHERENCE indicator=OUTCOME stage=APPLY step=generate-gooo-through-metacode
+cell ordinal=10 id=COHERENCE-OUTCOME-02 proof=COHERENCE indicator=OUTCOME stage=APPLY step=probe-released-compiler-interface
+cell ordinal=11 id=COHERENCE-GUARDRAIL-01 proof=COHERENCE indicator=GUARDRAIL stage=APPLY step=bind-exact-inverse-delta
+cell ordinal=12 id=COHERENCE-GUARDRAIL-02 proof=COHERENCE indicator=GUARDRAIL stage=APPLY step=retain-baseline-and-separate-candidate
+cell ordinal=13 id=REGRESSION-DRIVER-01 proof=REGRESSION indicator=DRIVER stage=CORPUS step=run-released-closed-unknown-refuted-corpus
+cell ordinal=14 id=REGRESSION-DRIVER-02 proof=REGRESSION indicator=DRIVER stage=CORPUS step=run-matched-corpus
+cell ordinal=15 id=REGRESSION-OUTCOME-01 proof=REGRESSION indicator=OUTCOME stage=VERIFY step=use-released-causal-selection
+cell ordinal=16 id=REGRESSION-OUTCOME-02 proof=REGRESSION indicator=OUTCOME stage=VERIFY step=run-independent-full-oracle
+cell ordinal=17 id=REGRESSION-GUARDRAIL-01 proof=REGRESSION indicator=GUARDRAIL stage=VERIFY step=compare-selective-full-and-replay-digests
+cell ordinal=18 id=REGRESSION-GUARDRAIL-02 proof=REGRESSION indicator=GUARDRAIL stage=DECIDE step=accept-only-on-all-predicates
+
+process_contract ProcessAuthorityContract
+process_field schema "gooo/evolution-trial/process-authority/v1"
+process_field repository "kimjooyoon/gooo-evolution-trial"
+process_field bootstrap_branch "main"
+process_field transition "PR_MERGE_ONLY"
+process_field release_policy "TAG_RELEASE_NO_DELETE_NO_REWRITE"
+process_field bootstrap_direct_main "1"
+process_field post_bootstrap_direct_main "0"
+process_field utility_global_core_state "UNKNOWN"
+process_field utility_global_core_status "NOT_MADE"
+process_evidence_schema "gooo/evolution-trial/process-evidence/v1"

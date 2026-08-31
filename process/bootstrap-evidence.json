@@ -1,0 +1,13 @@
+{
+  "schema": "gooo/evolution-trial/process-evidence/v1",
+  "repository": "kimjooyoon/gooo-evolution-trial",
+  "phase": "bootstrap",
+  "bootstrap_direct_main": 1,
+  "post_bootstrap_direct_main": 0,
+  "repository_writes_by_experiment": 0,
+  "upstream_writes_by_experiment": 0,
+  "local_test_executions": 0,
+  "utility_global_core": {"state": "UNKNOWN", "status": "NOT_MADE"},
+  "exact": false,
+  "next_operation": "COLLECT_GITHUB_REST_PROCESS_EVIDENCE_AFTER_FEATURE_PR_AND_RELEASE"
+}
