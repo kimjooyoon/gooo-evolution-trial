@@ -45,6 +45,7 @@ for ((input_index = 0; input_index < input_count; input_index++)); do
 		asset_digest=$(jq -er --argjson id "$asset_id" '.assets[] | select(.id == $id) | .digest' "$release_json")
 		echo "verifying $repository/$tag asset $asset_id: $asset_name $asset_size $asset_digest"
 		echo "locked $locked_name $locked_size sha256:$locked_sha"
+		printf 'digest-compare actual=%q expected=%q actual_len=%d expected_len=%d\n' "$asset_digest" "sha256:$locked_sha" "${#asset_digest}" "${#locked_sha}"
 		test "$asset_name" = "$locked_name"
 		test "$asset_size" = "$locked_size"
 		test "$asset_digest" = "sha256:$locked_sha"
