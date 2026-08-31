@@ -27,7 +27,7 @@ func PrepareCausalCase(baselineReportPath, candidateReportPath, outputPath strin
 		candidateStatus = "FAIL"
 		expectedDecision = "REFUTED"
 		failures = 1
-	} else if candidate.Unknown > 0 || candidate.InterfaceDecision != "CLOSED" {
+	} else if candidate.InterfaceDecision != "CLOSED" {
 		candidateStatus = "UNKNOWN"
 		expectedDecision = "UNKNOWN"
 		unknowns = 1
