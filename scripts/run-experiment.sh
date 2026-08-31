@@ -10,12 +10,17 @@ mkdir -p "$work/bin" "$work/src" "$work/results" "$work/logs"
 bash "$root/scripts/download-upstreams.sh" "$root" "$work/upstream"
 
 tar -xzf "$work/upstream/assets/gooo-language-delta-forge-v0.1.2.tar.gz" -C "$work/src"
-tar -xzf "$work/upstream/assets/gooo-reflexive-compiler-slice-source-v0.1.1.tar.gz" -C "$work/src"
+tar -xzf "$work/upstream/assets/gooo-reflexive-compiler-slice-source-v0.2.0.tar.gz" -C "$work/src"
 tar -xzf "$work/upstream/assets/gooo-causal-verification-runner-v0.1.1.tar.gz" -C "$work/src"
 
 delta_root="$work/src/gooo-language-delta-forge-v0.1.2"
-compiler_root="$work/src/gooo-reflexive-compiler-slice-v0.1.1"
+compiler_root="$work/src/gooo-reflexive-compiler-slice-v0.2.0"
 causal_root="$work/src/gooo-causal-verification-runner-v0.1.1"
+baseline_phase="$root/fixtures/reflexive-normalize-v0.1.1.gooo"
+root_phase="$compiler_root/meta/reflexive-normalize.gooo"
+
+test "$(sha256sum "$baseline_phase" | awk '{print $1}')" = "8a557cb3b7445f5186f0619b14c82dd215f1950a2d298bafe2cbdc7e54768220"
+test "$(sha256sum "$root_phase" | awk '{print $1}')" = "30b38ad566a350a3d0107f48f79ff43db467a94ce4aaf464ad1970e872b862b3"
 
 (cd "$delta_root" && go build -o "$work/bin/delta-forge" ./cmd/gooo-language-delta-forge)
 (cd "$compiler_root" && go build -o "$work/bin/reflexive-compiler" ./cmd/gooo-reflexive-compiler-slice && go build -o "$work/bin/reflexive-verify" ./cmd/gooo-reflexive-verify)
@@ -43,14 +48,14 @@ mkdir -p "$work/results/baseline-corpus"
 "$trial" run-corpus \
 	--compiler "$work/bin/reflexive-compiler" \
 	--verifier "$work/bin/reflexive-verify" \
-	--phase "$compiler_root/meta/reflexive-normalize.gooo" \
+	--phase "$baseline_phase" \
 	--root "$compiler_root" --role baseline \
 	--output-dir "$work/results/baseline-corpus" \
 	--report "$work/results/baseline-report.json" > "$work/logs/baseline-corpus.stdout"
 
 mkdir -p "$work/results/delta-input"
 "$trial" prepare-input \
-	--phase "$compiler_root/meta/reflexive-normalize.gooo" \
+	--phase "$baseline_phase" \
 	--compiler-commit "dabbe38badebefdf2979d8862c26a647b0dd15c0" \
 	--baseline-receipt "$work/results/baseline-corpus/CLOSED_CANONICAL_INPUT/baseline/receipt.json" \
 	--output-dir "$work/results/delta-input" > "$work/logs/prepare-input.stdout"
@@ -62,14 +67,27 @@ mkdir -p "$work/results/delta-candidate"
 	--input "$work/results/delta-input/input.json" \
 	--output "$work/results/delta-candidate" > "$work/logs/delta-generate.stdout"
 
-"$trial" generate-candidate-phase \
-	--candidate "$work/results/delta-candidate/candidate-bundle.json" \
-	--output "$work/results/candidate-phase.gooo" > "$work/logs/candidate-phase.stdout"
+bash "$compiler_root/scripts/apply-split-candidate.sh" \
+	"$baseline_phase" \
+	"$work/results/delta-candidate/candidate-bundle.json" \
+	"$work/results/candidate-phase.gooo" > "$work/logs/candidate-phase.stdout"
+test "$(sha256sum "$work/results/delta-candidate/candidate-bundle.json" | awk '{print $1}')" = "49244a778d6e80c67bb5fb0b99342873ba987916b14febb500524a26a5af3490"
+test "$(sha256sum "$work/results/candidate-phase.gooo" | awk '{print $1}')" = "30b38ad566a350a3d0107f48f79ff43db467a94ce4aaf464ad1970e872b862b3"
+cmp "$work/results/candidate-phase.gooo" "$root_phase"
+
+jq --arg compiler_tag "v0.2.0" \
+	--arg compiler_commit "7bdba0c353a73a40111747dbf55512939f6841a0" \
+	--arg root_phase_digest "sha256:30b38ad566a350a3d0107f48f79ff43db467a94ce4aaf464ad1970e872b862b3" \
+	--arg historical_release "https://github.com/kimjooyoon/gooo-evolution-trial/releases/tag/v0.1.0" \
+	--arg historical_error "phase graph must declare exactly three executable activities" \
+	'. + {applied_compiler:{tag:$compiler_tag,commit:$compiler_commit,root_phase_digest:$root_phase_digest},historical_counterexample:{release:$historical_release,state:"REFUTED",exact_error:$historical_error,evidence_disappearance_is_not_closure:true}}' \
+	"$work/results/delta-input/normalization-evidence.json" > "$work/results/delta-input/normalization-evidence.merged.json"
+mv "$work/results/delta-input/normalization-evidence.merged.json" "$work/results/delta-input/normalization-evidence.json"
 
 mkdir -p "$work/results/candidate-corpus"
 "$trial" run-corpus \
 	--compiler "$work/bin/reflexive-compiler" \
-	--verifier /bin/true \
+	--verifier "$work/bin/reflexive-verify" \
 	--phase "$work/results/candidate-phase.gooo" \
 	--root "$compiler_root" --role candidate \
 	--output-dir "$work/results/candidate-corpus" \
