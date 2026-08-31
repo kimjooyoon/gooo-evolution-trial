@@ -43,6 +43,8 @@ for ((input_index = 0; input_index < input_count; input_index++)); do
 		asset_name=$(jq -er --argjson id "$asset_id" '.assets[] | select(.id == $id) | .name' "$release_json")
 		asset_size=$(jq -er --argjson id "$asset_id" '.assets[] | select(.id == $id) | .size' "$release_json")
 		asset_digest=$(jq -er --argjson id "$asset_id" '.assets[] | select(.id == $id) | .digest' "$release_json")
+		echo "verifying $repository/$tag asset $asset_id: $asset_name $asset_size $asset_digest"
+		echo "locked $locked_name $locked_size sha256:$locked_sha"
 		test "$asset_name" = "$locked_name"
 		test "$asset_size" = "$locked_size"
 		test "$asset_digest" = "sha256:$locked_sha"
