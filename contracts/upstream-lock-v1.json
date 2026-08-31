@@ -1,0 +1,64 @@
+{
+  "schema": "gooo/evolution-trial/upstream-lock/v1",
+  "inputs": [
+    {
+      "producer": "github.com/kimjooyoon/gooo-language-delta-forge",
+      "release": "v0.1.2",
+      "release_id": 380033725,
+      "immutable": true,
+      "tag_object": "5d68c5f2f699f9d73bcf2e87121204512dfd64fc",
+      "target_commit": "30ad7a736d5d354a9e0cd998a8a1bd4dd5e11b45",
+      "release_run_id": 33436456556,
+      "release_job_id": 99633967202,
+      "release_artifact_id": 9774576485,
+      "assets": [
+        {"id":538495830,"name":"checksums.txt","size_bytes":240,"sha256":"cd99462d4d6635ba03024ef3e03ea600dbe65f22ad416f379583f86fa6af7876"},
+        {"id":538495829,"name":"gooo-language-delta-forge-v0.1.2-contracts.tar.gz","size_bytes":7542,"sha256":"e14fc1d338ea85a51f1d6f43997e0e1c74d9be2ddc9eaa97d22d98ebfb5ff2d4"},
+        {"id":538495828,"name":"gooo-language-delta-forge-v0.1.2.tar.gz","size_bytes":26671,"sha256":"77424f9465322c37ab87efcb920f936e6ddf3e02c2b7e59657fae82ff05283ba"},
+        {"id":538495832,"name":"release-manifest-v0.1.2.json","size_bytes":736,"sha256":"0c467b96e4b91915139aa0d5990b49c8ca5a038a2ac965d43a4a5656e511064a"}
+      ]
+    },
+    {
+      "producer": "github.com/kimjooyoon/gooo-reflexive-compiler-slice",
+      "release": "v0.1.1",
+      "release_id": 380040917,
+      "immutable": true,
+      "tag_object": "8db85557f66d4bb61a4fc1816b3a20dab2c40f0c",
+      "target_commit": "dabbe38badebefdf2979d8862c26a647b0dd15c0",
+      "release_run_id": 33437664492,
+      "release_job_id": 99637944818,
+      "release_artifact_id": 9775010906,
+      "release_conformance_run_id": 33437644781,
+      "release_conformance_job_id": 99637878450,
+      "assets": [
+        {"id":538508362,"name":"gooo-reflexive-compiler-slice-linux-amd64-v0.1.1.tar.gz","size_bytes":2589271,"sha256":"c4ad5900be6a479ab55e18a1bd939cc09389f305f6e6941064c1c6a229399387"},
+        {"id":538508360,"name":"gooo-reflexive-compiler-slice-source-v0.1.1.tar.gz","size_bytes":19475,"sha256":"ae6fef819ab034eb614e7a9e8b54ba18afab399ad2e730085ea221c2363fc38c"},
+        {"id":538508364,"name":"release-manifest-v0.1.1.json","size_bytes":795,"sha256":"cdd3d3f0cb426c1d26ebc83c2b998151fd6dade7f7b3bde77202ac9a7e0ad"},
+        {"id":538508363,"name":"release-report-v0.1.1.json","size_bytes":2898,"sha256":"cce11611c7ca561a0ba97004db610808ab924dfc465fd49371a7314cc57e963d"},
+        {"id":538508367,"name":"SHA256SUMS","size_bytes":506,"sha256":"1a41949ea027e01ae893dd3872ae32b537a896adaa0df4910628d3a51d73424e"},
+        {"id":538508361,"name":"version.json","size_bytes":315,"sha256":"363fc9e1d352091fb8cc79ff0a80ae464a526eb0fe8c055122320e1c0a0f0eef"}
+      ]
+    },
+    {
+      "producer": "github.com/kimjooyoon/gooo-causal-verification-runner",
+      "release": "v0.1.1",
+      "release_id": 380048457,
+      "immutable": true,
+      "tag_object": "82bb99006232a064725df29a53af5405e222cd42",
+      "target_commit": "0c16428762d1d1da1b28fe05c4e051d2cc41967b",
+      "release_run_id": 33439000856,
+      "release_job_id": 99642343892,
+      "release_artifact_id": 9775474098,
+      "release_artifact_name": "gooo-causal-verification-runner-33438900833",
+      "release_artifact_size_bytes": 3466163,
+      "release_artifact_sha256": "b3b9b89c820e9aa2f2d48c6686fb4a51bd52ac0b58c2c9ef15bc531191966183",
+      "release_conformance_run_id": 33438900833,
+      "release_conformance_job_id": 99642001168,
+      "assets": [
+        {"id":538521941,"name":"gooo-causal-verification-runner-v0.1.1.tar.gz","size_bytes":38034,"sha256":"fcf40acd1f09805e526b8e9634cd70b8f308e1f2312b0aac8d3253c4038db7fb"},
+        {"id":538521943,"name":"release-manifest.json","size_bytes":552,"sha256":"36d3f52aeb74f32025d0eaa10767e2a6036b5ad42e0636f92b90339af9615eb8"},
+        {"id":538521942,"name":"SHA256SUMS","size_bytes":214,"sha256":"4297c6c933c4892016df45367015094c9d2fe122a950f7effa9276607df6201f"}
+      ]
+    }
+  ]
+}
