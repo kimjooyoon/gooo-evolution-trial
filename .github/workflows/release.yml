@@ -1,0 +1,139 @@
+name: publish immutable evolution-trial release
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact merged main commit to release
+        required: true
+        type: string
+      release_version:
+        description: New unused 0.x.y version; never reuse a failed tag
+        required: true
+        default: '0.1.0'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    env:
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      RELEASE_VERSION: ${{ inputs.release_version }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check out exact merged main commit
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.27.x'
+      - name: Enable and verify immutable releases through REST
+        run: |
+          set -Eeuo pipefail
+          curl --fail --silent --show-error --request PUT \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'X-GitHub-Api-Version: 2026-03-10' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/immutable-releases" > "$RUNNER_TEMP/immutable-put.json"
+          gh api -H 'X-GitHub-Api-Version: 2026-03-10' "repos/$GITHUB_REPOSITORY/immutable-releases" > "$RUNNER_TEMP/immutable-get.json"
+          jq -e '.enabled == true' "$RUNNER_TEMP/immutable-get.json" >/dev/null
+      - name: Bind release subject and refuse reuse
+        run: |
+          set -Eeuo pipefail
+          case "$RELEASE_VERSION" in 0.*.*) ;; *) exit 64 ;; esac
+          RELEASE_TAG="v$RELEASE_VERSION"
+          echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$(git rev-parse --abbrev-ref HEAD)" = main
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then exit 1; fi
+          if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" >/dev/null 2>&1; then exit 1; fi
+      - name: Verify source and run GitHub Actions checks
+        run: |
+          set -Eeuo pipefail
+          test -z "$(gofmt -l $(git ls-files '*.go'))"
+          go vet ./...
+          go test ./...
+          go build -trimpath -o "$RUNNER_TEMP/gooo-evolution-trial" ./cmd/gooo-evolution-trial
+          "$RUNNER_TEMP/gooo-evolution-trial" authority-verify
+      - name: Assemble exact release assets
+        run: |
+          set -Eeuo pipefail
+          mkdir -p "$RUNNER_TEMP/release"
+          source="gooo-evolution-trial-source-$RELEASE_TAG.tar.gz"
+          lock="upstream-lock-$RELEASE_TAG.json"
+          dossier="experiment-dossier-$RELEASE_TAG.md"
+          version="version.json"
+          manifest="release-manifest-$RELEASE_TAG.json"
+          git archive --format=tar.gz --prefix="gooo-evolution-trial-$RELEASE_TAG/" "$EXPECTED_SHA" > "$RUNNER_TEMP/release/$source"
+          cp contracts/upstream-lock-v1.json "$RUNNER_TEMP/release/$lock"
+          cp docs/experiment-dossier.md "$RUNNER_TEMP/release/$dossier"
+          jq -n --arg tag "$RELEASE_TAG" --arg version "$RELEASE_VERSION" --arg commit "$EXPECTED_SHA" \
+            '{schema:"gooo/evolution-trial/release/v1",version:$version,tag:$tag,commit:$commit,scope:"ONE_BOUNDED_COMPILER_PHASE_EXPERIMENT",whole_language_self_improvement:"UNKNOWN",external_utility:"NOT_MADE",immutable_release_required:true}' \
+            > "$RUNNER_TEMP/release/$version"
+          source_digest="sha256:$(sha256sum "$RUNNER_TEMP/release/$source" | awk '{print $1}')"
+          lock_digest="sha256:$(sha256sum "$RUNNER_TEMP/release/$lock" | awk '{print $1}')"
+          dossier_digest="sha256:$(sha256sum "$RUNNER_TEMP/release/$dossier" | awk '{print $1}')"
+          version_digest="sha256:$(sha256sum "$RUNNER_TEMP/release/$version" | awk '{print $1}')"
+          jq -n --arg schema "gooo/evolution-trial/release-manifest/v1" --arg version "$RELEASE_VERSION" --arg tag "$RELEASE_TAG" --arg commit "$EXPECTED_SHA" \
+            --arg source "$source" --arg source_digest "$source_digest" --arg lock "$lock" --arg lock_digest "$lock_digest" \
+            --arg dossier "$dossier" --arg dossier_digest "$dossier_digest" --arg version_digest "$version_digest" \
+            '{schema:$schema,version:$version,tag:$tag,commit:$commit,assets:[{name:$source,digest:$source_digest},{name:$lock,digest:$lock_digest},{name:$dossier,digest:$dossier_digest},{name:"version.json",digest:$version_digest}]}' \
+            > "$RUNNER_TEMP/release/$manifest"
+          (cd "$RUNNER_TEMP/release" && sha256sum "$source" "$lock" "$dossier" version.json "$manifest" > SHA256SUMS)
+          (cd "$RUNNER_TEMP/release" && sha256sum -c SHA256SUMS)
+      - name: Create annotated tag once and publish release
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -a "$RELEASE_TAG" "$EXPECTED_SHA" -m "gooo-evolution-trial $RELEASE_TAG"
+          git push origin "refs/tags/$RELEASE_TAG"
+          gh release create "$RELEASE_TAG" --verify-tag --title "gooo-evolution-trial $RELEASE_TAG" \
+            --notes 'Immutable evidence-bounded release. Scope is one bounded compiler-phase experiment.' \
+            "$RUNNER_TEMP/release/gooo-evolution-trial-source-$RELEASE_TAG.tar.gz" \
+            "$RUNNER_TEMP/release/upstream-lock-$RELEASE_TAG.json" \
+            "$RUNNER_TEMP/release/experiment-dossier-$RELEASE_TAG.md" \
+            "$RUNNER_TEMP/release/version.json" \
+            "$RUNNER_TEMP/release/release-manifest-$RELEASE_TAG.json" \
+            "$RUNNER_TEMP/release/SHA256SUMS"
+      - name: Audit exact REST release, tag, target, assets, and job coordinates
+        run: |
+          set -Eeuo pipefail
+          release=$(gh api -H 'X-GitHub-Api-Version: 2026-03-10' "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG")
+          jq -e --arg tag "$RELEASE_TAG" '.tag_name == $tag and .immutable == true and .draft == false and .prerelease == false' <<<"$release" >/dev/null
+          tag_ref=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG")
+          test "$(jq -r '.object.type' <<<"$tag_ref")" = tag
+          tag_object=$(jq -r '.object.sha' <<<"$tag_ref")
+          tag_body=$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$tag_object")
+          target=$(jq -r '.object.sha' <<<"$tag_body")
+          test "$(jq -r '.object.type' <<<"$tag_body")" = commit
+          test "$target" = "$EXPECTED_SHA"
+          for name in "gooo-evolution-trial-source-$RELEASE_TAG.tar.gz" "upstream-lock-$RELEASE_TAG.json" "experiment-dossier-$RELEASE_TAG.md" version.json "release-manifest-$RELEASE_TAG.json" SHA256SUMS; do
+            local_path="$RUNNER_TEMP/release/$name"
+            expected_size=$(stat -c '%s' "$local_path")
+            expected_digest="sha256:$(sha256sum "$local_path" | awk '{print $1}')"
+            jq -e --arg name "$name" --arg digest "$expected_digest" --argjson size "$expected_size" '[.assets[] | select(.name == $name and .size == $size and .digest == $digest)] | length == 1' <<<"$release" >/dev/null
+          done
+          test "$(jq '.assets | length' <<<"$release")" = 6
+          job_id=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" --jq '.jobs[] | select(.name == "release") | .id' | head -1)
+          jq -n --arg repository "$GITHUB_REPOSITORY" --arg tag "$RELEASE_TAG" --arg target "$target" --arg tag_object "$tag_object" \
+            --argjson release_id "$(jq '.id' <<<"$release")" --argjson run_id "$GITHUB_RUN_ID" --argjson job_id "$job_id" \
+            --argjson assets "$(jq '[.assets[] | {id,name,size,digest}]' <<<"$release")" \
+            '{schema:"gooo/evolution-trial/release-audit/v1",repository:$repository,tag:$tag,release_id:$release_id,tag_object:$tag_object,target_commit:$target,run_id:$run_id,job_id:$job_id,assets:$assets,immutable:true}' \
+            > "$RUNNER_TEMP/release-audit.json"
+          cat "$RUNNER_TEMP/release-audit.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload release audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: gooo-evolution-trial-${{ inputs.release_version }}-release-audit
+          path: |
+            ${{ runner.temp }}/release-audit.json
+            ${{ runner.temp }}/immutable-get.json
+            ${{ runner.temp }}/release/*
+          if-no-files-found: error

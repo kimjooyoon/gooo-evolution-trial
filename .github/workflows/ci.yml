@@ -8,10 +8,13 @@ on:
 permissions:
   contents: read
   pull-requests: read
+  actions: read
 
 jobs:
-  bootstrap-authority:
+  verify-and-experiment:
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -20,13 +23,90 @@ jobs:
         with:
           go-version: '1.27.x'
           cache: true
-      - name: Check formatting
-        run: test -z "$(gofmt -l .)"
-      - name: Vet and build bootstrap executor
+      - name: Check formatting and authority
         run: |
+          test -z "$(gofmt -l .)"
+      - name: Compile packages
+        id: compile
+        run: |
+          started=$(date +%s%3N)
+          go test -run '^$' ./...
+          finished=$(date +%s%3N)
+          echo "wall_ms=$((finished - started))" >> "$GITHUB_OUTPUT"
+      - name: Vet and build executor
+        id: build
+        run: |
+          started=$(date +%s%3N)
           go vet ./...
-          go build -o "$RUNNER_TEMP/gooo-evolution-trial" ./cmd/gooo-evolution-trial
-      - name: Verify .gooo authority and bootstrap evidence
+          /usr/bin/time -f '%e %M' -o "$RUNNER_TEMP/build.time" go build -o "$RUNNER_TEMP/gooo-evolution-trial" ./cmd/gooo-evolution-trial
+          finished=$(date +%s%3N)
+          echo "wall_ms=$((finished - started))" >> "$GITHUB_OUTPUT"
+      - name: Run CI tests with exact counters
+        id: tests
         run: |
-          "$RUNNER_TEMP/gooo-evolution-trial" authority-verify
-          jq -e '.schema == "gooo/evolution-trial/process-evidence/v1" and .bootstrap_direct_main == 1 and .post_bootstrap_direct_main == 0 and .local_test_executions == 0 and .exact == false' process/bootstrap-evidence.json >/dev/null
+          started=$(date +%s%3N)
+          /usr/bin/time -f '%e %M' -o "$RUNNER_TEMP/test.time" go test -json -count=1 ./... > "$RUNNER_TEMP/go-test.json"
+          finished=$(date +%s%3N)
+          echo "wall_ms=$((finished - started))" >> "$GITHUB_OUTPUT"
+      - name: Run released tools and one bounded experiment
+        id: experiment
+        run: |
+          started=$(date +%s%3N)
+          bash scripts/run-experiment.sh "$GITHUB_WORKSPACE" "$RUNNER_TEMP/gooo-evolution-trial" "$RUNNER_TEMP/gooo-evolution-trial-experiment"
+          finished=$(date +%s%3N)
+          echo "wall_ms=$((finished - started))" >> "$GITHUB_OUTPUT"
+      - name: Collect GitHub REST process evidence
+        run: |
+          phase=main
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then phase=pull_request; fi
+          bash scripts/collect-process-evidence.sh "$GITHUB_REPOSITORY" "$phase" "$RUNNER_TEMP/gooo-evolution-trial-experiment/results/process-evidence.json"
+      - name: Write exact metrics and final dossier
+        run: |
+          work="$RUNNER_TEMP/gooo-evolution-trial-experiment"
+          output_files=$(find "$work/results" -type f | wc -l | tr -d ' ')
+          output_bytes=$(find "$work/results" -type f -print0 | xargs -0 stat -c '%s' | awk '{total += $1} END {print total + 0}')
+          build_rss=$(awk '{print $2}' "$RUNNER_TEMP/build.time")
+          test_rss=$(awk '{print $2}' "$RUNNER_TEMP/test.time")
+          peak_rss=$((build_rss > test_rss ? build_rss : test_rss))
+          jq -n \
+            --argjson compile_ms "${{ steps.compile.outputs.wall_ms }}" \
+            --argjson build_ms "${{ steps.build.outputs.wall_ms }}" \
+            --argjson test_ms "${{ steps.tests.outputs.wall_ms }}" \
+            --argjson conformance_ms "${{ steps.experiment.outputs.wall_ms }}" \
+            --argjson integration_ms "${{ steps.experiment.outputs.wall_ms }}" \
+            --argjson peak_rss_kib "$peak_rss" \
+            --argjson output_files "$output_files" --argjson output_bytes "$output_bytes" \
+            --argjson tests_total "$(jq '.total' "$work/results/baseline-report.json")" \
+            --argjson tests_executed "$(jq '.executed' "$work/results/baseline-report.json")" \
+            --argjson tests_reused "$(jq '.reused' "$work/results/baseline-report.json")" \
+            --argjson tests_failed "$(jq '.failed' "$work/results/baseline-report.json")" \
+            --argjson tests_unknown "$(jq '.unknown' "$work/results/baseline-report.json")" \
+            '{schema:"gooo/evolution-trial/ci-metrics/v1",go_files:0,gooo_files:0,physical_lines:0,regular_files:0,subdirectories:0,root_readme_excluded:true,generated_files:$output_files,generated_bytes:$output_bytes,compile_wall_ms:$compile_ms,build_wall_ms:$build_ms,test_wall_ms:$test_ms,conformance_wall_ms:$conformance_ms,integration_wall_ms:$integration_ms,peak_rss_kib:$peak_rss_kib,tests:{total:$tests_total,executed:$tests_executed,reused:$tests_reused,failed:$tests_failed,unknown:$tests_unknown},repository_writes:0,upstream_writes:0,local_test_executions:0}' > "$work/results/ci-metrics.json"
+          jq -s '.[0] as $metrics | .[1] as $inventory | $metrics + {go_files:$inventory.go_files,gooo_files:$inventory.gooo_files,physical_lines:$inventory.physical_lines,regular_files:$inventory.regular_files,subdirectories:$inventory.subdirectories,root_readme_excluded:$inventory.root_readme_excluded}' "$work/results/ci-metrics.json" "$work/results/repository-inventory.json" > "$work/results/ci-metrics.merged.json"
+          mv "$work/results/ci-metrics.merged.json" "$work/results/ci-metrics.json"
+          "$RUNNER_TEMP/gooo-evolution-trial" dossier \
+            --baseline-report "$work/results/baseline-report.json" \
+            --candidate-report "$work/results/candidate-report.json" \
+            --candidate-bundle "$work/results/delta-candidate/candidate-bundle.json" \
+            --normalization-evidence "$work/results/delta-input/normalization-evidence.json" \
+            --causal-receipt "$work/results/causal-experiment/verification-receipt.json" \
+            --process-evidence "$work/results/process-evidence.json" \
+            --metrics "$work/results/ci-metrics.json" \
+            --report "$work/results/final-report.json" \
+            --dossier "$work/results/dossier.md"
+      - name: Verify experiment decisions and exact counts
+        run: |
+          work="$RUNNER_TEMP/gooo-evolution-trial-experiment"
+          jq -e '.decision == "CLOSED" and .counts.added_cells == 2 and .counts.retired_cells == 1 and .counts.split_cells == 1 and .rollback_delta.exact_pair == true' "$work/results/delta-candidate/candidate-bundle.json" >/dev/null
+          jq -e '.role == "baseline" and .total == 3 and .closed == 1 and .unknown == 1 and .refuted == 1 and .failed == 0 and .replay_digest_match == true' "$work/results/baseline-report.json" >/dev/null
+          jq -e '.role == "candidate" and .total == 3 and .closed == 0 and .unknown == 0 and .refuted == 3 and .failed == 3 and .interface_decision == "REFUTED"' "$work/results/candidate-report.json" >/dev/null
+          jq -e '.decision == "REFUTED" and .selection_mode == "CAUSAL_SELECT" and .metrics.total_tests == 2 and .metrics.selected == 1 and .metrics.executed == 1 and .metrics.reused == 1 and .metrics.full_oracle_executed == 2 and .metrics.failures == 1' "$work/results/causal-experiment/verification-receipt.json" >/dev/null
+          jq -e '.decision == "REFUTED" and .acceptance_predicates.candidate_compiled_and_generated_ir_backend == false and .acceptance_predicates.rollback_possible == true and .authority.repository_writes == 0 and .authority.upstream_writes == 0 and .authority.local_test_executions == 0' "$work/results/final-report.json" >/dev/null
+          jq -e '.exact == true and .bootstrap_direct_main == 1 and .post_bootstrap_direct_main == 0 and .repository_writes_by_experiment == 0 and .upstream_writes_by_experiment == 0' "$work/results/process-evidence.json" >/dev/null
+      - name: Upload experiment dossier
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gooo-evolution-trial-${{ github.run_id }}
+          path: ${{ runner.temp }}/gooo-evolution-trial-experiment/results
+          if-no-files-found: warn
