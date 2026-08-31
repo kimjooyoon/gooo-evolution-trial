@@ -109,4 +109,4 @@ jobs:
         with:
           name: gooo-evolution-trial-${{ github.run_id }}
           path: ${{ runner.temp }}/gooo-evolution-trial-experiment/results
-          if-no-files-found: error
+          if-no-files-found: warn
