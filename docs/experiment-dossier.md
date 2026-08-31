@@ -1,36 +1,42 @@
 # Gooo evolution trial dossier
 
-This is the committed experiment boundary and interpretation. The run-specific
-machine report and generated dossier are uploaded by GitHub Actions.
+This is the committed policy and interpretation for the second immutable
+release-to-release experiment. The run-specific machine report and generated
+dossier are uploaded by GitHub Actions.
 
-The single experiment observes the real `NormalizeSource` phase in the
-immutable `gooo-reflexive-compiler-slice v0.1.1` release. That released phase
-parses declarations, binds stable IDs, sorts the semantic IR by stable ID,
-refutes duplicate stable IDs, and records an UNKNOWN when its required entity
-is missing.
+The prior immutable `gooo-evolution-trial v0.1.0` release remains preserved as
+a historical `REFUTED` counterexample:
+https://github.com/kimjooyoon/gooo-evolution-trial/releases/tag/v0.1.0. Its
+exact compiler error was `phase graph must declare exactly three executable
+activities`. Evidence disappearance is not closure.
 
-The immutable `gooo-language-delta-forge v0.1.2` receives that observation and
-emits one exact split candidate: retire the coarse `NormalizeSource` cell and
-add two cells, `ParseSource` and `ValidateStableIDs`. The candidate carries an
-exact inverse rollback and an exact integer resolution pair of 1 before and 2
-after phase-localization cells, but that pair is usable only when the run binds
-the same source and toolchain digests.
+The second experiment uses the immutable `gooo-reflexive-compiler-slice v0.2.0`
+release, the exact three-activity baseline phase preserved from the v0.1.1
+compiler evidence, the unchanged immutable `gooo-language-delta-forge v0.1.2`
+contract, and the unchanged immutable
+`gooo-causal-verification-runner v0.1.1` contract. The failure receipt, delta,
+and candidate inputs are byte-for-byte the same as the v0.1.0 experiment.
+
+The immutable delta forge emits one exact split candidate: retire the coarse
+`NormalizeSource` cell and add two cells, `ParseSource` and
+`ValidateStableIDs`. The candidate carries an exact inverse rollback and an
+exact integer resolution pair of 1 before and 2 after phase-localization
+cells, bound to the same source and toolchain digests.
 
 The candidate `.gooo` phase is generated from the released candidate bundle by
-the caller-owned adapter. Candidate Go is never hand-authored as semantic
-authority. The candidate phase intentionally exposes the released compiler's
-composition boundary: it has four executable activities, while the released
-compiler phase parser accepts exactly three. If the released compiler rejects
-the candidate, the experiment records `REFUTED`, preserves the baseline, and
-does not invent candidate IR or backend artifacts.
+the v0.2.0 released adapter. Candidate Go is never hand-authored as semantic
+authority. The v0.2.0 compiler accepts the resulting four-activity phase,
+emits semantic IR and backend artifacts, and independently verifies replay.
 
-The immutable `gooo-causal-verification-runner v0.1.1` selects the affected
-candidate corpus test, reuses one exact immutable proof for a stable control,
-and compares both with the independent full oracle. A selective result never
-suppresses a full-oracle counterexample.
+Both the baseline three-activity corpus and candidate four-activity corpus
+must observe exactly one `CLOSED`, one `UNKNOWN`, and one `REFUTED`, with replay
+digests matching and no failed commands. The causal runner must report
+`total=2`, `selected=1`, `executed=1`, `reused=1`, `full_oracle=2`,
+`failures=0`, and `unknowns=0`; `CLOSED` is valid only when the independent full
+oracle also reports zero failures and zero unknowns.
 
-Acceptance requires candidate artifacts, equal replay digests, preservation of
-the released one-`CLOSED`/one-`UNKNOWN`/one-`REFUTED` corpus, causal/full-oracle
-agreement, a possible rollback, and the matched integer pair. Whole-language
-self-improvement and external utility are not established by this bounded
-phase experiment and remain `UNKNOWN`/`NOT_MADE`.
+The closure receipt is accepted only when observed with stage `IMPROVEMENT`,
+step `RESOLVE_TRIAL_COUNTEREXAMPLE`, and reason
+`GRAPH_SEMANTICS_ACCEPT_SPLIT_CANDIDATE`. The bounded result does not establish
+whole-language self-improvement, which remains `UNKNOWN`; external utility is
+`NOT_MADE`.

@@ -55,11 +55,7 @@ func RunCorpus(options CorpusOptions) (CorpusReport, error) {
 			return report, err
 		}
 		sourcePath := filepath.Join(options.Root, item.Source)
-		if options.Role == "baseline" {
-			caseResult = runBaselineCase(options, item, sourcePath, caseDir, caseResult)
-		} else {
-			caseResult = runCandidateCase(options, item, sourcePath, caseDir, caseResult)
-		}
+		caseResult = runCorpusCase(options, item, sourcePath, caseDir, caseResult)
 		report.Cases = append(report.Cases, caseResult)
 		report.Total++
 		report.Executed++
@@ -90,7 +86,7 @@ func RunCorpus(options CorpusOptions) (CorpusReport, error) {
 			}
 		}
 	}
-	if options.Role == "baseline" && report.Failed == 0 && report.Closed == 1 && report.Unknown == 1 && report.Refuted == 1 && report.ReplayDigestMatch {
+	if report.Failed == 0 && report.Closed == 1 && report.Unknown == 1 && report.Refuted == 1 && report.ReplayDigestMatch {
 		report.InterfaceDecision = "CLOSED"
 	} else if options.Role == "candidate" && report.Failed == report.Total && report.Total == 3 {
 		report.InterfaceDecision = "REFUTED"
@@ -109,14 +105,13 @@ func RunCorpus(options CorpusOptions) (CorpusReport, error) {
 	return report, nil
 }
 
-func runBaselineCase(options CorpusOptions, item CorpusCase, sourcePath, caseDir string, result CorpusCaseResult) CorpusCaseResult {
+func runCorpusCase(options CorpusOptions, item CorpusCase, sourcePath, caseDir string, result CorpusCaseResult) CorpusCaseResult {
 	baselineDir := filepath.Join(caseDir, "baseline")
 	candidateDir := filepath.Join(caseDir, "candidate")
 	if err := os.MkdirAll(baselineDir, 0o755); err != nil {
 		result.TerminalResult, result.Error = "FAIL", err.Error()
 		return result
 	}
-	started := time.Now()
 	first := runProcess(options.Compiler, []string{"--phase", options.Phase, "--input", sourcePath, "--input-kind", "source", "--source", sourcePath, "--output-dir", baselineDir, "--run-id", item.ID + "-baseline", "--role", "baseline"}, filepath.Join(caseDir, "baseline.stdout"), filepath.Join(caseDir, "baseline.stderr"))
 	result.WallMS += first.WallMS
 	result.PeakRSSKiB = first.PeakRSSKiB
@@ -163,33 +158,6 @@ func runBaselineCase(options CorpusOptions, item CorpusCase, sourcePath, caseDir
 	if !result.ReplayDigestMatch {
 		result.Error = "released independent verifier did not observe equal replay digests"
 	}
-	_ = started
-	return result
-}
-
-func runCandidateCase(options CorpusOptions, item CorpusCase, sourcePath, caseDir string, result CorpusCaseResult) CorpusCaseResult {
-	started := time.Now()
-	observation := runProcess(options.Compiler, []string{"--phase", options.Phase, "--input", sourcePath, "--input-kind", "source", "--source", sourcePath, "--output-dir", filepath.Join(caseDir, "candidate"), "--run-id", item.ID + "-candidate", "--role", "candidate"}, filepath.Join(caseDir, "candidate.stdout"), filepath.Join(caseDir, "candidate.stderr"))
-	result.WallMS = observation.WallMS
-	result.PeakRSSKiB = observation.PeakRSSKiB
-	if observation.Status == 0 {
-		var receipt struct {
-			Decision string `json:"decision"`
-		}
-		if err := ReadJSON(filepath.Join(caseDir, "candidate", "receipt.json"), &receipt); err == nil {
-			result.Observed = receipt.Decision
-			result.GeneratedArtifacts = true
-			result.TerminalResult = "PASS"
-			result.ReplayDigestMatch = false
-			result.Error = "candidate unexpectedly accepted by released compiler interface"
-			return result
-		}
-	}
-	result.Observed = "REFUTED"
-	result.TerminalResult = "FAIL"
-	result.Error = observation.Error
-	result.ReplayDigestMatch = false
-	_ = started
 	return result
 }
 

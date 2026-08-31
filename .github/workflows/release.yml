@@ -10,7 +10,7 @@ on:
       release_version:
         description: New unused 0.x.y version; never reuse a failed tag
         required: true
-        default: '0.1.0'
+        default: '0.2.0'
         type: string
 
 permissions:
