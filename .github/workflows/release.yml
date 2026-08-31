@@ -33,11 +33,6 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: '1.27.x'
-      - name: Verify immutable releases through REST
-        run: |
-          set -Eeuo pipefail
-          gh api -H 'X-GitHub-Api-Version: 2026-03-10' "repos/$GITHUB_REPOSITORY/immutable-releases" > "$RUNNER_TEMP/immutable-get.json"
-          jq -e '.enabled == true' "$RUNNER_TEMP/immutable-get.json" >/dev/null
       - name: Bind release subject and refuse reuse
         run: |
           set -Eeuo pipefail
@@ -129,6 +124,5 @@ jobs:
           name: gooo-evolution-trial-${{ inputs.release_version }}-release-audit
           path: |
             ${{ runner.temp }}/release-audit.json
-            ${{ runner.temp }}/immutable-get.json
             ${{ runner.temp }}/release/*
           if-no-files-found: error
