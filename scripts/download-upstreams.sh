@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-set -x
 
 root=${1:?repository root is required}
 work=${2:?upstream work directory is required}
@@ -8,10 +7,14 @@ mkdir -p "$work/assets" "$work/observed"
 
 lock="$root/contracts/upstream-lock-v1.json"
 
-while IFS=$'\t' read -r producer tag release_id immutable tag_object target_commit; do
-	if [ -z "$producer" ]; then
-		continue
-	fi
+input_count=$(jq '.inputs | length' "$lock")
+for ((input_index = 0; input_index < input_count; input_index++)); do
+	producer=$(jq -r ".inputs[$input_index].producer" "$lock")
+	tag=$(jq -r ".inputs[$input_index].release" "$lock")
+	release_id=$(jq -r ".inputs[$input_index].release_id" "$lock")
+	immutable=$(jq -r ".inputs[$input_index].immutable" "$lock")
+	tag_object=$(jq -r ".inputs[$input_index].tag_object" "$lock")
+	target_commit=$(jq -r ".inputs[$input_index].target_commit" "$lock")
 	repository=${producer#github.com/}
 	release_json="$work/observed/${repository##*/}-${tag}.json"
 	gh api "repos/$repository/releases/tags/$tag" > "$release_json"
@@ -29,14 +32,16 @@ while IFS=$'\t' read -r producer tag release_id immutable tag_object target_comm
 	test "$actual_target" = "$target_commit"
 	test "$actual_target_type" = "commit"
 
-	jq -r --arg repo "$repository" --arg tag "$tag" '.assets[] | [$repo,$tag,.id,.name,.size,.digest,.browser_download_url] | @tsv' "$release_json" |
-	while IFS=$'\t' read -r asset_repo asset_tag asset_id asset_name asset_size asset_digest asset_url; do
-		locked=$(jq -r --arg producer "github.com/$asset_repo" --arg tag "$asset_tag" --argjson id "$asset_id" \
-			'.inputs[] | select(.producer == $producer and .release == $tag) | .assets[] | select(.id == $id) | [.name,.size_bytes,.sha256] | @tsv' "$lock")
-		if [ -z "$locked" ]; then
-			continue
-		fi
-		IFS=$'\t' read -r locked_name locked_size locked_sha <<<"$locked"
+	asset_count=$(jq ".inputs[$input_index].assets | length" "$lock")
+	for ((asset_index = 0; asset_index < asset_count; asset_index++)); do
+		asset_id=$(jq -r ".inputs[$input_index].assets[$asset_index].id" "$lock")
+		locked_name=$(jq -r ".inputs[$input_index].assets[$asset_index].name" "$lock")
+		locked_size=$(jq -r ".inputs[$input_index].assets[$asset_index].size_bytes" "$lock")
+		locked_sha=$(jq -r ".inputs[$input_index].assets[$asset_index].sha256" "$lock")
+		asset_url=$(jq -er --argjson id "$asset_id" '.assets[] | select(.id == $id) | .browser_download_url' "$release_json")
+		asset_name=$(jq -er --argjson id "$asset_id" '.assets[] | select(.id == $id) | .name' "$release_json")
+		asset_size=$(jq -er --argjson id "$asset_id" '.assets[] | select(.id == $id) | .size' "$release_json")
+		asset_digest=$(jq -er --argjson id "$asset_id" '.assets[] | select(.id == $id) | .digest' "$release_json")
 		test "$asset_name" = "$locked_name"
 		test "$asset_size" = "$locked_size"
 		test "$asset_digest" = "sha256:$locked_sha"
@@ -48,7 +53,7 @@ while IFS=$'\t' read -r producer tag release_id immutable tag_object target_comm
 	done
 
 	gh api "repos/$repository/actions/runs/$(jq -r --arg repo "github.com/$repository" --arg tag "$tag" '.inputs[] | select(.producer == $repo and .release == $tag) | .release_run_id' "$lock")/jobs?per_page=100" > "$work/observed/${repository##*/}-${tag}-jobs.json"
-done < <(jq -r '.inputs[] | [.producer,.release,.release_id,.immutable,.tag_object,.target_commit] | @tsv' "$lock")
+done
 
 jq -S . "$lock" > "$work/observed/upstream-lock.json"
 printf '%s\n' '{"schema":"gooo/evolution-trial/upstream-fetch/v1","decision":"CLOSED","writes":{"repository":0,"upstream":0},"tag_and_asset_digests_verified":true}' > "$work/observed/fetch-report.json"
